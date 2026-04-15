@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+truncated_models/
+benchmark_results.json
+*.egg-info/
+.eggs/
+dist/
+build/
