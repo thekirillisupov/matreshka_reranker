@@ -61,7 +61,7 @@ class TorchReranker:
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             trust_remote_code=True,
-            torch_dtype=dtype,
+            dtype=dtype,
         )
         self.model.to(device)
         self.model.eval()
@@ -94,7 +94,9 @@ class TorchReranker:
             head = self.model.lm_head
             if isinstance(head, torch.nn.ModuleList):
                 return head[0].linear_head.weight.data.clone()
-        raise ValueError("Cannot extract head weight: model is not layer_wise or has unexpected structure")
+        raise ValueError(
+            "Cannot extract head weight: model is not layer_wise or has unexpected structure"
+        )
 
     def _format_inputs(
         self,
@@ -109,9 +111,9 @@ class TorchReranker:
         prompt_inputs = self.tokenizer(
             DEFAULT_PROMPT, return_tensors=None, add_special_tokens=False
         )["input_ids"]
-        sep_inputs = self.tokenizer(
-            SEP, return_tensors=None, add_special_tokens=False
-        )["input_ids"]
+        sep_inputs = self.tokenizer(SEP, return_tensors=None, add_special_tokens=False)[
+            "input_ids"
+        ]
         encode_max_length = max_length + len(sep_inputs) + len(prompt_inputs)
 
         all_items = []
@@ -159,7 +161,10 @@ class TorchReranker:
 
         # Pad batch
         batch = self.tokenizer.pad(
-            [{"input_ids": it["input_ids"], "attention_mask": it["attention_mask"]} for it in all_items],
+            [
+                {"input_ids": it["input_ids"], "attention_mask": it["attention_mask"]}
+                for it in all_items
+            ],
             padding=True,
             pad_to_multiple_of=8,
             return_tensors="pt",
@@ -229,7 +234,11 @@ class TorchReranker:
             for i, layer in enumerate(used_layers):
                 if i < len(logits_list):
                     logits = logits_list[i]
-                    mask = masks_list[i] if i < len(masks_list) else batch["attention_mask"]
+                    mask = (
+                        masks_list[i]
+                        if i < len(masks_list)
+                        else batch["attention_mask"]
+                    )
                     pooled = last_logit_pool(logits, mask)
                     scores = pooled.cpu().float().tolist()
                     if isinstance(scores[0], list):
@@ -308,7 +317,9 @@ class TorchReranker:
                 # Apply the final RMS norm (same as model does at cutoff)
                 hs_normed = norm_layer(hs)
                 # Pool last real token
-                pooled = last_logit_pool(hs_normed, attention_mask)  # [batch, hidden_size]
+                pooled = last_logit_pool(
+                    hs_normed, attention_mask
+                )  # [batch, hidden_size]
                 # Apply classification head
                 logits = torch.nn.functional.linear(pooled, head_weight)  # [batch, 1]
 
@@ -355,7 +366,9 @@ if __name__ == "__main__":
     print("\n=== Native scoring (model's cutoff_layers) ===")
     native_scores = reranker.score(pairs)
     for layer, scores in native_scores.items():
-        print(f"Layer {layer}: mean={np.mean(scores):.4f}, min={np.min(scores):.4f}, max={np.max(scores):.4f}")
+        print(
+            f"Layer {layer}: mean={np.mean(scores):.4f}, min={np.min(scores):.4f}, max={np.max(scores):.4f}"
+        )
 
     # Test multi-layer extraction
     print("\n=== Multi-layer extraction (matryoshka test) ===")
@@ -363,6 +376,8 @@ if __name__ == "__main__":
     test_layers = [l for l in test_layers if l <= reranker.get_num_layers()]
     multi_scores = reranker.score_all_layers(pairs, layers=test_layers)
     for layer, scores in sorted(multi_scores.items()):
-        print(f"Layer {layer}: mean={np.mean(scores):.4f}, min={np.min(scores):.4f}, max={np.max(scores):.4f}")
+        print(
+            f"Layer {layer}: mean={np.mean(scores):.4f}, min={np.min(scores):.4f}, max={np.max(scores):.4f}"
+        )
 
     reranker.cleanup()

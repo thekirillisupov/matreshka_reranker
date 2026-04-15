@@ -53,9 +53,9 @@ def create_truncated_model(
     model = AutoModelForCausalLM.from_pretrained(
         source_model_name,
         trust_remote_code=True,
-        torch_dtype=dtype,
-        device_map=device,
+        dtype=dtype,
     )
+    model.to(device)
 
     config = model.config
     num_layers = config.num_hidden_layers
@@ -226,9 +226,9 @@ def create_multiple_truncated_models(
     model = AutoModelForCausalLM.from_pretrained(
         source_model_name,
         trust_remote_code=True,
-        torch_dtype=dtype,
-        device_map=device,
+        dtype=dtype,
     )
+    model.to(device)
 
     config = model.config
     num_layers = config.num_hidden_layers

@@ -7,3 +7,4 @@ benchmark_results.json
 .eggs/
 dist/
 build/
+.venv/
